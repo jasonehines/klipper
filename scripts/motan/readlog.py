@@ -195,6 +195,7 @@ class HandleAngle:
         self.next_angle = self.last_angle = 0.
         self.cur_data = []
         self.data_pos = 0
+        self.position_offset = 0.
         self.angle_dist = 40. / 65536 # XXX
     def get_description(self, name_parts):
         return {'label': '%s position' % (name_parts[1],),
@@ -206,13 +207,18 @@ class HandleAngle:
                 tdiff = self.next_angle_time - self.last_angle_time
                 rtdiff = req_time - self.last_angle_time
                 po = rtdiff * pdiff / tdiff
-                return (self.last_angle + po) * self.angle_dist
+                return ((self.last_angle + po) * self.angle_dist
+                        + self.position_offset)
             if self.data_pos >= len(self.cur_data):
                 # Read next data block
                 jmsg = self.jdispatch.pull_msg(req_time, self.msg_id)
                 if jmsg is None:
-                    return self.next_angle * self.angle_dist
+                    return (self.next_angle * self.angle_dist
+                            + self.position_offset)
                 self.cur_data = jmsg['data']
+                position_offset = jmsg.get('position_offset')
+                if position_offset is not None:
+                    self.position_offset = position_offset
                 self.data_pos = 0
                 continue
             self.last_angle = self.next_angle
